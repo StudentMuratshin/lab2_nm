@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include <iomanip>
 #include <fstream>
+#include "gnu.h"
 #include <vector>
 #include <string>
 #include <numeric>
@@ -13,17 +14,28 @@ constexpr auto true_value = 2.69632737829770440658;
 
 int main()
 {
+	Gnuplot plot;
+
 	
 	const double a = 0, b = 3 * M_PI;
-	const double H = abs(a - b) / 1e5;
-	vector <vector<pair<double, double>>> table { make_table(1e5, 0, 3 * M_PI, H) };
-	//vector<pair<double, double>> table1 = make_table(1e5, 0, 3 * M_PI, H);
+	int n = 1e5;
+	const double H = abs(a - b) / n;
+	vector <vector<pair<double, double>>> table { make_table(n, a, b, H) };
 
 	//прямоугольник
 	std::cout << std::setprecision(15);
-	cout << "rectangle integral: " << Integrals_rectangle(H, table[0]) << endl;
+	cout << "rectangle integral: " << Integrals_rectangle_with_gnu(H, table[0]) << endl;
+	//plot("plot 'out.csv' using 1:2 w l lt 1 lw 1 title 'rectangle'"); // рисовать
+	//system("pause");
+	cout << min_n(a, b) << endl;
+
+
 	// трапеция
 	cout << "trapezoid integral: " << Integrals_trap(H, a, b, table[0]) << endl;
+	plot("plot 'out.csv' using 1:2 w l lt 1 lw 1 title 'trapezoid'"); // рисовать
+	cout << min_n_trap(a, b) << endl;
+	//system("pause");
+	//plot("exit gnuplot");
 
 	// Тхомас Симпсон
 	cout << "Simpson's integral: " << Integrals_simpson(H, table[0]) << endl;
@@ -71,7 +83,7 @@ int main()
 
 	//Legendre polynomials
 	vector <double> roots;
-	double n = 20;
+	n = 20;
 	root(n, n, roots, n);
 	double sum = 0;
 	for (auto s: roots)

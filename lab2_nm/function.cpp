@@ -1,8 +1,12 @@
 ﻿#include "function.h"
 #include <vector>
+#include <fstream>
 #include <cmath>
+#include <iostream>
 using namespace std;
 constexpr auto M_PI = 3.14159265358979323846;
+constexpr auto true_value = 2.69632737829770440658;
+constexpr auto delta = 2e-3;
 
 double fx(const double x)
 {
@@ -12,6 +16,19 @@ double fx(const double x)
 double ft(double t)
 {
 	return sin(3 * M_PI / 2. * (t + 1)) * log(3 * M_PI / 2. * (t + 1) + 1);
+}
+
+double Integrals_rectangle_with_gnu(double h, const vector<pair<double, double>>& T)
+{
+	ofstream f_rectangle("out.csv");
+	double sum = 0;
+	for (int i = 1; i < T.size(); i++)
+	{
+		sum += fx((T[i - 1].first + T[i].first) / 2.);
+		f_rectangle << i << " " << abs(h * sum - true_value) << endl; //в файл
+	}
+	f_rectangle.close();
+	return h * sum;
 }
 
 double Integrals_rectangle(double h, const vector<pair<double, double>>& T)
@@ -26,11 +43,14 @@ double Integrals_rectangle(double h, const vector<pair<double, double>>& T)
 
 double Integrals_trap(double h, double a, double b, const vector<pair<double, double>>& T)
 {
+	ofstream f_trap("out.csv");
 	double sum = 0;
 	for (int i = 0; i < T.size(); i++)
 	{
 		sum += fx(T[i].first);
+		f_trap << i << " " << abs(h * sum + h * (fx(a) + fx(b)) / 2. - true_value) << endl; //в файл
 	}
+	f_trap.close();
 	return h * sum + h * (fx(a) + fx(b)) / 2.;
 }
 
@@ -122,8 +142,7 @@ pair <double, int> opt_table(double a, double b)
 {
 	int k = 1;
 	bool key_out = false, key_in = false;
-	double delta = 1e-5;
-	double S = 0, x = a, eps, h = 0.01, I_trapezoid;
+	double S = 0, x = a, eps, h = 2, I_trapezoid;
 
 	while(!key_out)
 	{
@@ -133,7 +152,7 @@ pair <double, int> opt_table(double a, double b)
 		{
 			eps = Eps(x, x + h, h);
 			I_trapezoid = I(x, x + h, h);
-			if (eps > delta * h / (b - a)) h /= 2;
+			if (eps > delta *  (b - a) / h) h /= 2;
 			else break;
 		}
 
@@ -145,7 +164,6 @@ pair <double, int> opt_table(double a, double b)
 			h = b - x;
 			key_in = true;
 		}
-		else h = h;
 		k++;
 	}
 	pair <double, int> r = { S,k };
@@ -160,4 +178,38 @@ double MC(vector<pair<double, double>>& T, double a, double b)
 		sum += s.second;
 	}
 	return (b - a) * sum / T.size();
+}
+
+int min_n(double a, double b)
+{
+	double n = 1;
+	double h = abs(a - b) / n;
+	vector <pair<double, double>> T = make_table(n, a, b, h);
+	double I_ = Integrals_rectangle(h, T);
+	while (abs(true_value - I_) >= delta)
+	{
+		n++;
+		h = abs(a - b) / n;
+		T = make_table(n, a, b, h);
+		I_ = Integrals_rectangle(h, T);
+	}
+	std::cout << I_ << endl;
+	return n;
+}
+
+int min_n_trap(double a, double b)
+{
+	double n = 1;
+	double h = abs(a - b) / n;
+	vector <pair<double, double>> T = make_table(n, a, b, h);
+	double I_ = Integrals_trap(h, a, b, T);
+	while (abs(true_value - I_) >= delta)
+	{
+		n++;
+		h = abs(a - b) / n;
+		T = make_table(n, a, b, h);
+		I_ = Integrals_trap(h, a, b, T);
+	}
+	std::cout << I_ << endl;
+	return n;
 }
