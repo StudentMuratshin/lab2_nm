@@ -3,15 +3,17 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <numeric>
 #include <cmath>
 #include <Eigen/Dense>
 #include "function.h"
 
 constexpr auto M_PI = 3.14159265358979323846;
-using namespace std;
+constexpr auto true_value = 2.69632737829770440658;
 
 int main()
 {
+	
 	const double a = 0, b = 3 * M_PI;
 	const double H = abs(a - b) / 1e5;
 	vector <vector<pair<double, double>>> table { make_table(1e5, 0, 3 * M_PI, H) };
@@ -41,8 +43,7 @@ int main()
 	cout << "Runge: " << Runge << endl;
 	 
 	// Ромберг
-	//Eigen::MatrixXf A1(p + 1e5 - 2);
-	int q = 3;
+	const int q = table.size();
 	Eigen::MatrixXd A1(q,q);
 	Eigen::MatrixXd A2(q, q);
 	Eigen::VectorXd vec_temp(q);
@@ -64,5 +65,24 @@ int main()
 	vec_temp.setConstant(1);
 	A2 = A1;
 	A2.col(0) = vec_temp;
-	cout << A1.determinant() * (A2.inverse()).determinant();
+	double Romberg = A1.determinant() * (A2.inverse()).determinant();
+	cout << "Romberg: " << Romberg << endl;
+	cout << "abs error: " << abs(Romberg - true_value) << endl;
+
+	//Legendre polynomials
+	vector <double> roots;
+	double n = 20;
+	root(n, n, roots, n);
+	double sum = 0;
+	for (auto s: roots)
+	{
+		sum += weights(s, n) * ft(s);
+	}
+	cout << "Gaussian quadrature: " << (b - a) / 2. * sum << endl;
+
+	//Optimal distribution
+	cout << "Optimal distribution: " << opt_table(a, b).first << " n: " << opt_table(a, b).second << endl;
+
+	//Монте_карло
+	cout << "Monte Carlo: " << MC(table[2], a, b) << endl;
 }
