@@ -28,7 +28,6 @@ int main()
 	//plot("plot 'out.csv' using 1:2 w l lt 1 lw 1 title 'rectangle'"); // рисовать
 	cout << "min n: " << min_n(a, b, "rectangle") << endl << endl;
 	//system("pause"); cout << endl;
-
 	// трапеция
 	cout << "trapezoid integral: " << Integrals_trap_with_gnu(H, a, b, table[0]) << endl;
 	//plot("plot 'out.csv' using 1:2 w l lt 1 lw 1 title 'trapezoi'"); // рисовать
