@@ -26,19 +26,21 @@ int main()
 	std::cout << std::setprecision(15);
 	cout << "rectangle integral: " << Integrals_rectangle_with_gnu(H, table[0]) << endl;
 	//plot("plot 'out.csv' using 1:2 w l lt 1 lw 1 title 'rectangle'"); // рисовать
-	//system("pause");
-	cout << min_n(a, b) << endl;
-
+	cout << "min n: " << min_n(a, b, "rectangle") << endl << endl;
+	//system("pause"); cout << endl;
 
 	// трапеция
-	cout << "trapezoid integral: " << Integrals_trap(H, a, b, table[0]) << endl;
-	plot("plot 'out.csv' using 1:2 w l lt 1 lw 1 title 'trapezoid'"); // рисовать
-	cout << min_n_trap(a, b) << endl;
-	//system("pause");
-	//plot("exit gnuplot");
+	cout << "trapezoid integral: " << Integrals_trap_with_gnu(H, a, b, table[0]) << endl;
+	//plot("plot 'out.csv' using 1:2 w l lt 1 lw 1 title 'trapezoi'"); // рисовать
+	cout << "min n: " << min_n(a, b, "trapezoid") << endl << endl;
+	//system("pause"); cout << endl;
 
 	// Тхомас Симпсон
 	cout << "Simpson's integral: " << Integrals_simpson(H, table[0]) << endl;
+	//plot("plot 'out.csv' using 1:2 w l lt 1 lw 1 title 'simpson'"); // рисовать
+	cout << "min n: " << min_n(a, b, "simpson") << endl << endl;
+	//system("pause"); cout << endl;
+	plot("exit gnuplot");
 
 	// Эйткин
 	double k = 1 / 9.;
@@ -78,22 +80,16 @@ int main()
 	A2 = A1;
 	A2.col(0) = vec_temp;
 	double Romberg = A1.determinant() * (A2.inverse()).determinant();
-	cout << "Romberg: " << Romberg << endl;
-	cout << "abs error: " << abs(Romberg - true_value) << endl;
+	cout << "Romberg: " << Romberg << endl << endl;
 
 	//Legendre polynomials
-	vector <double> roots;
-	n = 20;
-	root(n, n, roots, n);
-	double sum = 0;
-	for (auto s: roots)
-	{
-		sum += weights(s, n) * ft(s);
-	}
-	cout << "Gaussian quadrature: " << (b - a) / 2. * sum << endl;
+	n = min_n(a, b, "Gaussian_quadrature");
+	cout << "Gaussian quadrature: " << Gaussian_quadrature(a, b, n) << endl;
+	cout << "min n: " << n << endl << endl;
 
 	//Optimal distribution
-	cout << "Optimal distribution: " << opt_table(a, b).first << " n: " << opt_table(a, b).second << endl;
+	cout << "Optimal distribution: " << opt_table(a, b).first << endl; 
+	cout << "min n: " << opt_table(a, b).second << endl << endl;
 
 	//Монте_карло
 	cout << "Monte Carlo: " << MC(table[2], a, b) << endl;

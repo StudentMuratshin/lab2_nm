@@ -25,7 +25,7 @@ double Integrals_rectangle_with_gnu(double h, const vector<pair<double, double>>
 	for (int i = 1; i < T.size(); i++)
 	{
 		sum += fx((T[i - 1].first + T[i].first) / 2.);
-		f_rectangle << i << " " << abs(h * sum - true_value) << endl; //в файл
+		f_rectangle << i << " " << abs(true_value - h * sum) << endl; //в файл
 	}
 	f_rectangle.close();
 	return h * sum;
@@ -43,12 +43,22 @@ double Integrals_rectangle(double h, const vector<pair<double, double>>& T)
 
 double Integrals_trap(double h, double a, double b, const vector<pair<double, double>>& T)
 {
+	double sum = 0;
+	for (int i = 0; i < T.size(); i++)
+	{
+		sum += fx(T[i].first);
+	}
+	return h * sum + h * (fx(a) + fx(b)) / 2.;
+}
+
+double Integrals_trap_with_gnu(double h, double a, double b, const vector<pair<double, double>>& T)
+{
 	ofstream f_trap("out.csv");
 	double sum = 0;
 	for (int i = 0; i < T.size(); i++)
 	{
 		sum += fx(T[i].first);
-		f_trap << i << " " << abs(h * sum + h * (fx(a) + fx(b)) / 2. - true_value) << endl; //в файл
+		f_trap << i << " " << abs(true_value - h * sum + h * (fx(a) + fx(b)) / 2.) << endl; //в файл
 	}
 	f_trap.close();
 	return h * sum + h * (fx(a) + fx(b)) / 2.;
@@ -57,18 +67,25 @@ double Integrals_trap(double h, double a, double b, const vector<pair<double, do
 double Integrals_simpson(double h, vector<pair<double, double>>& T)
 {
 	double sum4 = 0, sum2 = 0;
-	for (int i = 0; i < T.size(); i += 2)
+	for (int i = 0; i < T.size(); i ++)
 	{
-		sum4 += fx(T[i].first);
+		if (i % 2 == 0) sum4 += fx(T[i].first);
+		else sum2 += fx(T[i].first);
 	}
+	return h * (fx(T[0].first) + 4 * sum4 + 2 * sum2 + fx(T[T.size() - 1].first)) / 3.;
+}
 
-
-	for (int i = 1; i < T.size(); i += 2)
+double Integrals_simpson_with_gnu(double h, vector<pair<double, double>>& T)
+{
+	ofstream f_simpson("out.csv");
+	double sum4 = 0, sum2 = 0;
+	for (int i = 0; i < T.size(); i++)
 	{
-		sum2 += fx(T[i].first);
+		if (i % 2 == 0) sum4 += fx(T[i].first);
+		else sum2 += fx(T[i].first);
+		f_simpson << i << " " << abs(h * (fx(T[0].first) + 4 * sum4 + 2 * sum2 + fx(T[T.size() - 1].first)) / 3. - true_value) << endl; //в файл
 	}
-
-
+	f_simpson.close();
 	return h * (fx(T[0].first) + 4 * sum4 + 2 * sum2 + fx(T[T.size() - 1].first)) / 3.;
 }
 
@@ -180,36 +197,70 @@ double MC(vector<pair<double, double>>& T, double a, double b)
 	return (b - a) * sum / T.size();
 }
 
-int min_n(double a, double b)
+int min_n(double a, double b, string name)
 {
 	double n = 1;
 	double h = abs(a - b) / n;
 	vector <pair<double, double>> T = make_table(n, a, b, h);
-	double I_ = Integrals_rectangle(h, T);
-	while (abs(true_value - I_) >= delta)
+
+	if (name == "rectangle")
 	{
-		n++;
-		h = abs(a - b) / n;
-		T = make_table(n, a, b, h);
-		I_ = Integrals_rectangle(h, T);
+		double I_ = Integrals_rectangle(h, T);
+		while (abs(true_value - I_) >= delta)
+		{
+			n++;
+			h = abs(a - b) / n;
+			T = make_table(n, a, b, h);
+			I_ = Integrals_rectangle(h, T);
+		}
 	}
-	std::cout << I_ << endl;
+
+	else if (name == "trapezoid")
+	{
+		double I_ = Integrals_trap(h, a, b, T);
+		while (abs(true_value - I_) >= delta)
+		{
+			n++;
+			h = abs(a - b) / n;
+			T = make_table(n, a, b, h);
+			I_ = Integrals_trap(h, a, b, T);
+		}
+	}
+
+	else if (name == "simpson")
+	{
+		double I_ = Integrals_simpson(h, T);
+		while (abs(true_value - I_) >= delta)
+		{
+			n++;
+			h = abs(a - b) / n;
+			T = make_table(n, a, b, h);
+			I_ = Integrals_simpson(h, T);
+		}
+	}
+
+	else if (name == "Gaussian_quadrature")
+	{
+		double I_ = Gaussian_quadrature(a, b, n);
+		while (abs(true_value - I_) >= delta)
+		{
+			n++;
+			h = abs(a - b) / n;
+			T = make_table(n, a, b, h);
+			I_ = Gaussian_quadrature(a, b, n);
+		}
+	}
 	return n;
 }
 
-int min_n_trap(double a, double b)
+double Gaussian_quadrature(double a, double b, int n)
 {
-	double n = 1;
-	double h = abs(a - b) / n;
-	vector <pair<double, double>> T = make_table(n, a, b, h);
-	double I_ = Integrals_trap(h, a, b, T);
-	while (abs(true_value - I_) >= delta)
+	vector <double> roots;
+	root(n, n, roots, n);
+	double sum = 0;
+	for (auto s : roots)
 	{
-		n++;
-		h = abs(a - b) / n;
-		T = make_table(n, a, b, h);
-		I_ = Integrals_trap(h, a, b, T);
+		sum += weights(s, n) * ft(s);
 	}
-	std::cout << I_ << endl;
-	return n;
+	return (b - a) / 2. * sum;
 }
