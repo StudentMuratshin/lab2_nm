@@ -25,7 +25,14 @@ double I_tr(double xi, double xi_1, double h);
 double I(double xi, double xi_1, double h);
 double Eps(double xi, double xi_1, double h);
 pair <double, int> opt_table(double a, double b);
-double MC(vector<pair<double, double>>& T, double a, double b);
+
+double MC(double a, double b, int n);
+double cycle_for_MC(double a, double b, int n);
+void MC_for_gnu(double a, double b, int n);
+
 int min_n(double a, double b, string name);
+double Romberg(vector <vector<pair<double, double>>> &table, double H, double k, int p);
+int Aitken(double k, vector <vector<pair<double, double>>>& table, double H);
+double Runge(double k, int p, double H, vector <vector<pair<double, double>>>& table);
 
 double Gaussian_quadrature(double a, double b, int n);

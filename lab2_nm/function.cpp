@@ -3,6 +3,10 @@
 #include <fstream>
 #include <cmath>
 #include <iostream>
+#include <Eigen/Dense>
+#include <ctime>
+#include <omp.h>
+
 using namespace std;
 constexpr auto M_PI = 3.14159265358979323846;
 constexpr auto true_value = 2.69632737829770440658;
@@ -33,20 +37,30 @@ double Integrals_rectangle_with_gnu(double h, const vector<pair<double, double>>
 
 double Integrals_rectangle(double h, const vector<pair<double, double>>& T)
 {
+	omp_set_num_threads(6);
 	double sum = 0;
-	for (int i = 1; i < T.size(); i++)
+#pragma omp parallel
 	{
-		sum += fx((T[i - 1].first + T[i].first) / 2.);
+#pragma omp for reduction(+:sum)
+		for (int i = 1; i < T.size(); i++)
+		{
+			sum += fx((T[i - 1].first + T[i].first) / 2.);
+		}
 	}
 	return h * sum;
 }
 
 double Integrals_trap(double h, double a, double b, const vector<pair<double, double>>& T)
 {
-	double sum = 0;
-	for (int i = 0; i < T.size(); i++)
+	omp_set_num_threads(6);
+	double sum = 0; 
+#pragma omp parallel
 	{
-		sum += fx(T[i].first);
+#pragma omp for reduction(+:sum)
+		for (int i = 0; i < T.size(); i++)
+		{
+			sum += fx(T[i].first);
+		}
 	}
 	return h * sum + h * (fx(a) + fx(b)) / 2.;
 }
@@ -67,10 +81,20 @@ double Integrals_trap_with_gnu(double h, double a, double b, const vector<pair<d
 double Integrals_simpson(double h, vector<pair<double, double>>& T)
 {
 	double sum4 = 0, sum2 = 0;
-	for (int i = 0; i < T.size(); i ++)
+	omp_set_num_threads(6);
+#pragma omp parallel
 	{
-		if (i % 2 == 0) sum4 += fx(T[i].first);
-		else sum2 += fx(T[i].first);
+#pragma omp for reduction(+:sum4)
+		for (int i = 0; i < T.size(); i += 2)
+		{
+			sum4 += fx(T[i].first);
+		}
+
+#pragma omp for reduction(+:sum2)
+		for (int i = 1; i < T.size(); i += 2)
+		{
+			sum2 += fx(T[i].first);
+		}
 	}
 	return h * (fx(T[0].first) + 4 * sum4 + 2 * sum2 + fx(T[T.size() - 1].first)) / 3.;
 }
@@ -158,13 +182,11 @@ double Eps(double xi, double xi_1, double h)
 pair <double, int> opt_table(double a, double b)
 {
 	int k = 1;
-	bool key_out = false, key_in = false;
 	double S = 0, x = a, eps, h = 2, I_trapezoid;
 
-	while(!key_out)
+	while(true)
 	{
-		if (key_in) key_out = true;
-
+		k++;
 		while (true)
 		{
 			eps = Eps(x, x + h, h);
@@ -179,22 +201,41 @@ pair <double, int> opt_table(double a, double b)
 		if (x + h > b)
 		{
 			h = b - x;
-			key_in = true;
+			break;
 		}
-		k++;
 	}
 	pair <double, int> r = { S,k };
 	return r;
 }
 
-double MC(vector<pair<double, double>>& T, double a, double b)
+double MC(double a, double b, int n)
 {
 	double sum = 0;
-	for (auto s: T)
+	for (int i = 0; i <= 100; i++)
 	{
-		sum += s.second;
+		sum += cycle_for_MC(a, b, n);
 	}
-	return (b - a) * sum / T.size();
+	return sum / 100.;
+}
+
+double cycle_for_MC(double a, double b, int n)
+{
+	double sum = 0, error = 0;
+	for (int i = 0; i < n; i++)
+	{
+		sum += fx((b - a) * ((double)rand() / (double)RAND_MAX) + a);
+	}
+	return (b - a) * sum / n;
+}
+
+void MC_for_gnu(double a, double b, int n)
+{
+	ofstream f_Monte("out.csv");
+	for (int i = 0; i < n; i++)
+	{
+		f_Monte << i << " " << abs(MC(a, b, i) - true_value) << endl;
+	}
+	f_Monte.close();
 }
 
 int min_n(double a, double b, string name)
@@ -251,6 +292,46 @@ int min_n(double a, double b, string name)
 		}
 	}
 	return n;
+}
+
+double Romberg(vector <vector<pair<double, double>>>& table, double H, double k, int p)
+{
+	const int q = table.size();
+	Eigen::MatrixXd A1(q, q);
+	Eigen::MatrixXd A2(q, q);
+	Eigen::VectorXd vec_temp(q);
+	for (int j = 0; j < q; j++)
+	{
+		for (int i = 0; i < q; i++)
+		{
+			if (j == 0)
+			{
+				vec_temp[i] = Integrals_rectangle(H * pow(k, i), table[i]);
+			}
+			else
+			{
+				vec_temp[i] = pow(H * pow(k, i), p + j - 1);
+			}
+		}
+		A1.col(j) = vec_temp;
+	}
+	vec_temp.setConstant(1);
+	A2 = A1;
+	A2.col(0) = vec_temp;
+	return A1.determinant() * (A2.inverse()).determinant();
+}
+
+int Aitken(double k, vector <vector<pair<double, double>>>& table, double H)
+{
+	double B = (Integrals_rectangle(H, table[0]) - Integrals_rectangle(H * k, table[1])) /
+		(Integrals_rectangle(H * k, table[1]) - Integrals_rectangle(H * k * k, table[2]));
+	return round(-log(B) / log(k));
+}
+
+double Runge(double k, int p, double H, vector <vector<pair<double, double>>>& table)
+{
+	double sigma = pow(k, p) / (pow(k, p) - 1);
+	return sigma * Integrals_rectangle(H, table[0]) + (1 - sigma) * Integrals_rectangle(H * k, table[1]);
 }
 
 double Gaussian_quadrature(double a, double b, int n)
